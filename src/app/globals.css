@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+/* ─── Local Hanuman font faces (Restricted strictly to Khmer script) ───────── */
+@font-face {
+  font-family: 'Hanuman';
+  src: url('/fonts/Hanuman-Thin.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+25CC;
+}
+
+@font-face {
+  font-family: 'Hanuman';
+  src: url('/fonts/Hanuman-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+25CC;
+}
+
+@font-face {
+  font-family: 'Hanuman';
+  src: url('/fonts/Hanuman-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+25CC;
+}
+
+@font-face {
+  font-family: 'Hanuman';
+  src: url('/fonts/Hanuman-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+25CC;
+}
+
+@font-face {
+  font-family: 'Hanuman';
+  src: url('/fonts/Hanuman-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+1780-17FF, U+19E0-19FF, U+25CC;
+}
+
+/* ─── Tailwind v4: class-based dark mode ───────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Design tokens — mirrors the capture app ─────────────────────────────── */
+:root {
+  /* Canvas / page backgrounds */
+  --app-canvas: #f8fafc;
+  --app-page: #f8fafc;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f1f5f9;
+  --app-border: #e2e8f0;
+  --app-text: #0f172a;
+  --app-text-muted: #475569;
+  --app-text-subtle: #64748b;
+
+  /* Brand primary — matches DHIS2 header bar */
+  --app-primary: #2c6693;
+  --app-primary-hover: #205075;
+  --app-primary-rgb: 44 102 147;
+
+  --app-radius: 0.5rem;
+  --app-control-h: 2.25rem;
+}
+
+.dark {
+  --app-canvas: #09090b;
+  --app-page: #09090b;
+  --app-surface: #121215;
+  --app-surface-muted: #18181b;
+  --app-border: #27272a;
+  --app-text: #fafafa;
+  --app-text-muted: #a1a1aa;
+  --app-text-subtle: #71717a;
+  color-scheme: dark;
+}
+
+/* ─── Tailwind v4 theme extension (CSS-first) ─────────────────────────────── */
+@theme inline {
+  --color-background: var(--app-canvas);
+  --color-foreground: var(--app-text);
+
+  /* Extend radius */
+  --radius-lg: 0.625rem;
+  --radius-md: 0.5rem;
+  --radius-sm: 0.375rem;
+
+  /* Custom colours surfaced as tw utilities */
+  --color-primary: var(--app-primary);
+  --color-primary-hover: var(--app-primary-hover);
+
+  /* Match capture dark zinc palette */
+  --color-zinc-950: #000000;
+  --color-zinc-900: #050505;
+  --color-zinc-800: #111111;
+  --color-zinc-700: #222222;
+  --color-zinc-600: #333333;
+
+  /* Typography: Hanuman (Khmer only via unicode-range) + Modern Sans for English (Google Sans, Inter) */
+  --font-sans: "Hanuman", "Google Sans", "Google Sans Text", var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Hanuman", "Google Sans", var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+/* ─── Base styles ─────────────────────────────────────────────────────────── */
+@layer base {
+  *, ::before, ::after {
+    box-sizing: border-box;
+    font-family: "Hanuman", "Google Sans", "Google Sans Text", var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  html {
+    height: 100%;
+    font-family: "Hanuman", "Google Sans", "Google Sans Text", var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  body {
+    @apply m-0 antialiased text-[13px] leading-relaxed;
+    background-color: var(--app-canvas);
+    color: var(--app-text);
+    font-family: "Hanuman", "Google Sans", "Google Sans Text", var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    height: 100%;
+  }
+
+  input, button, select, textarea {
+    font-family: "Hanuman", "Google Sans", "Google Sans Text", var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  table, th, td {
+    font-family: "Hanuman", "Google Sans", "Google Sans Text", var(--font-inter), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  #__next,
+  body > div:first-child {
+    height: 100%;
+  }
+}
+
+/* ─── Utility classes shared across components ────────────────────────────── */
+@layer utilities {
+  .font-uuic {
+    font-family: "Google Sans", "Google Sans Text", var(--font-inter), "Inter", ui-monospace, monospace !important;
+    letter-spacing: 0.04em;
+  }
+
+  .app-surface {
+    background-color: var(--app-surface);
+  }
+
+  .app-border {
+    border-color: var(--app-border);
+  }
+
+  .app-text-meta {
+    color: var(--app-text-subtle);
+  }
+}
