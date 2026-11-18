@@ -1,13 +1,13 @@
 // ─── CBS Multi-Connection Architecture ────────────────────────────────────────
 //
-//  1. ART & VCCT: Shared MySQL Database
+//  1. ART & VCCT: Shared MySQL Database (Configured directly in .env.local)
 //     - Host, Port (3306), Database name, MySQL user, password
 //
 //  2. NPD: National Prevention Database — DHIS2 Instance
 //     - DHIS2 Server / API URL (e.g. https://npd.nchads.gov.kh)
 //     - DHIS2 user credentials
 //
-//  3. CBS DUAL: Connects BOTH MySQL (ART & VCCT) and DHIS2 (NPD) simultaneously.
+//  3. CBS DUAL: Connects BOTH MySQL (.env) and DHIS2 (NPD) simultaneously.
 
 export type ConnectionKind = "MYSQL" | "DHIS2" | "DUAL"
 export type ProgramType = "ART" | "VCCT" | "ART_VCCT" | "NPD" | "CBS_DUAL" | string
@@ -119,40 +119,43 @@ export async function testDhis2Connection(
   }
 }
 
-/** Test MySQL Database Connection */
-export async function testMySqlConnection(
-  host: string,
-  port: number,
-  dbName: string,
-  username: string,
-  password?: string
-): Promise<{ ok: boolean; error?: string }> {
-  if (!host) return { ok: false, error: "MySQL Host is required" }
-  if (!username) return { ok: false, error: "MySQL Username is required" }
-  if (!dbName) return { ok: false, error: "Database name is required" }
-
+/** Get MySQL connection status and configuration directly from .env.local */
+export async function getEnvMySqlStatus(): Promise<{
+  ok: boolean
+  connected: boolean
+  error?: string
+  config?: { host: string; port: number; database: string; user: string }
+}> {
   try {
-    // 1. Try dedicated MySQL connect route
+    const res = await fetch("/api/mysql/connect", { cache: "no-store" })
+    return await res.json()
+  } catch (err: any) {
+    return { ok: false, connected: false, error: err.message || "Failed to reach MySQL connect API" }
+  }
+}
+
+/** Test MySQL Database Connection (Reads directly from .env by default) */
+export async function testMySqlConnection(
+  host?: string,
+  port?: number,
+  dbName?: string,
+  username?: string,
+  password?: string
+): Promise<{ ok: boolean; error?: string; config?: { host: string; port: number; database: string; user: string } }> {
+  try {
+    // Connects via dedicated API route which defaults to .env.local
     const res = await fetch("/api/mysql/connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ host, port, dbName, username, password }),
+      body: JSON.stringify(host ? { host, port, dbName, username, password } : {}),
     })
     const data = await res.json()
     if (!res.ok || !data.ok) {
       return { ok: false, error: data.error || "Failed to connect to MySQL" }
     }
-    return { ok: true }
-  } catch {
-    // Fallback probe
-    try {
-      const fb = await fetch("/api/mysql/records?type=vcct&pageSize=1")
-      const fbData = await fb.json()
-      if (fb.ok && fbData.ok) return { ok: true }
-      return { ok: false, error: fbData.error || "MySQL connection failed" }
-    } catch (fbErr: any) {
-      return { ok: false, error: fbErr.message || "MySQL connection failed" }
-    }
+    return { ok: true, config: data.config }
+  } catch (err: any) {
+    return { ok: false, error: err.message || "MySQL connection request failed" }
   }
 }
 
@@ -163,21 +166,22 @@ export interface DualTestResult {
   mysqlError?: string
   dhis2Error?: string
   error?: string
+  mysqlConfig?: { host: string; port: number; database: string; user: string }
   dhis2User?: { id: string; username: string; displayName: string }
 }
 
-/** Test BOTH MySQL and DHIS2 simultaneously — both must succeed to login */
+/** Test BOTH MySQL (from .env) and DHIS2 simultaneously — both must succeed to login */
 export async function testDualConnection(params: {
-  mysql: { host: string; port: number; dbName: string; username: string; password?: string }
+  mysql?: { host?: string; port?: number; dbName?: string; username?: string; password?: string }
   dhis2: { serverUrl: string; username: string; password?: string }
 }): Promise<DualTestResult> {
   const [mysqlRes, dhis2Res] = await Promise.all([
     testMySqlConnection(
-      params.mysql.host,
-      params.mysql.port,
-      params.mysql.dbName,
-      params.mysql.username,
-      params.mysql.password
+      params.mysql?.host,
+      params.mysql?.port,
+      params.mysql?.dbName,
+      params.mysql?.username,
+      params.mysql?.password
     ),
     testDhis2Connection(
       params.dhis2.serverUrl,
@@ -192,11 +196,11 @@ export async function testDualConnection(params: {
 
   let combinedError = ""
   if (!mysqlOk && !dhis2Ok) {
-    combinedError = `បរាជ័យទាំងពីរ (Both systems failed):\n• MySQL: ${mysqlRes.error}\n• DHIS2: ${dhis2Res.error}`
+    combinedError = `បរាជ័យទាំងពីរ (Both systems failed):\n• MySQL (.env): ${mysqlRes.error}\n• DHIS2 (NPD): ${dhis2Res.error}`
   } else if (!mysqlOk) {
-    combinedError = `MySQL បរាជ័យ (MySQL failed): ${mysqlRes.error}. Both systems are required to log in.`
+    combinedError = `MySQL (.env) បរាជ័យ: ${mysqlRes.error}. Both systems are required to log in.`
   } else if (!dhis2Ok) {
-    combinedError = `DHIS2 NPD បរាជ័យ (DHIS2 failed): ${dhis2Res.error}. Both systems are required to log in.`
+    combinedError = `DHIS2 NPD បរាជ័យ: ${dhis2Res.error}. Both systems are required to log in.`
   }
 
   return {
@@ -206,6 +210,7 @@ export async function testDualConnection(params: {
     mysqlError: mysqlRes.error,
     dhis2Error: dhis2Res.error,
     error: combinedError || undefined,
+    mysqlConfig: mysqlRes.config,
     dhis2User: dhis2Res.user,
   }
 }

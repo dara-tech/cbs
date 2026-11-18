@@ -7,8 +7,8 @@ export interface Dhis2Credentials {
 }
 
 const DEFAULT_SERVER = process.env.DHIS2_SERVER_URL || "https://npd.nchads.gov.kh"
-const DEFAULT_USER = process.env.DHIS2_USERNAME || "sovandara"
-const DEFAULT_PASS = process.env.DHIS2_PASSWORD || "Mpi@2023"
+const DEFAULT_USER = process.env.DHIS2_USERNAME || ""
+const DEFAULT_PASS = process.env.DHIS2_PASSWORD || ""
 
 /**
  * Resolves DHIS2 connection credentials from cookies, headers, query params, or default env

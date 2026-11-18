@@ -5,7 +5,7 @@ import { decodeValue, VCCT_RISK_LABELS_KH } from "@/lib/clinicalDictionary"
 let pool: mysql.Pool | null = null
 let currentPoolKey = ""
 
-function loadEnvFallback() {
+export function loadEnvFallback() {
   try {
     const fs = require("fs")
     const path = require("path")
