@@ -26,7 +26,6 @@ import {
   XCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { LinkStatusBadge } from "@/components/linkage/LinkStatusBadge"
 import type {
   CombinedClientProfile,
   ArtPatientProfile,
@@ -258,29 +257,6 @@ export function ClientProfileModal({
                     PMRS: {pmrs}
                   </span>
                 )}
-              </div>
-
-              {/* Master Patient Linkage Status Badge */}
-              <div className="mt-2.5">
-                <LinkStatusBadge
-                  size="md"
-                  status={
-                    profile?.foundInVcct && profile?.foundInArt
-                      ? "verified"
-                      : uuic && (artnum || vcctId)
-                      ? "proposed"
-                      : "unlinked"
-                  }
-                  confidenceScore={92}
-                  mpiId={uuic ? `MPI-${uuic}` : undefined}
-                  linkedSystems={
-                    [
-                      npdCase ? "NPD" : undefined,
-                      profile?.foundInVcct || vcctId ? "VCCT" : undefined,
-                      profile?.foundInArt || artnum ? "ART" : undefined,
-                    ].filter(Boolean) as Array<"NPD" | "VCCT" | "ART">
-                  }
-                />
               </div>
             </div>
           </div>
