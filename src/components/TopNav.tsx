@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { type DbConnection } from "@/lib/database"
 import { getProgramColor } from "@/lib/programColors"
 import { ProgramLogo } from "@/components/ProgramLogo"
+import { useConnection } from "@/lib/ConnectionContext"
 
 interface TopNavProps {
   title?: string
@@ -23,6 +24,7 @@ export function TopNav({
   className,
 }: TopNavProps) {
   const progColor = connection ? getProgramColor(connection.program) : null
+  const { isDual, activeView, setActiveView } = useConnection()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +91,38 @@ export function TopNav({
               (Switch)
             </span>
           </button>
+        )}
+
+        {/* Dual Mode View Switcher (NPD Surveillance vs ART/VCCT MySQL) */}
+        {isDual && (
+          <div className="hidden lg:flex items-center gap-1 rounded-xl bg-slate-100/90 p-0.5 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setActiveView("NPD")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer",
+                activeView === "NPD"
+                  ? "bg-white text-violet-700 shadow-xs dark:bg-zinc-800 dark:text-violet-300"
+                  : "text-slate-500 hover:text-slate-800 dark:text-zinc-400"
+              )}
+            >
+              <span className="h-2 w-2 rounded-full bg-violet-500" />
+              NPD Surveillance (DHIS2)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveView("CLINICAL")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11.5px] font-semibold transition-all cursor-pointer",
+                activeView === "CLINICAL"
+                  ? "bg-white text-blue-700 shadow-xs dark:bg-zinc-800 dark:text-blue-300"
+                  : "text-slate-500 hover:text-slate-800 dark:text-zinc-400"
+              )}
+            >
+              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              ART & VCCT (MySQL)
+            </button>
+          </div>
         )}
       </div>
 

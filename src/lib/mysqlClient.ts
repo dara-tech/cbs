@@ -3,15 +3,57 @@ import { decodeValue, VCCT_RISK_LABELS_KH } from "@/lib/clinicalDictionary"
 
 // Singleton MySQL Connection Pool for NCHADS MPI (main_dbs)
 let pool: mysql.Pool | null = null
+let currentPoolKey = ""
+
+function loadEnvFallback() {
+  try {
+    const fs = require("fs")
+    const path = require("path")
+    const candidatePaths = [
+      path.resolve(process.cwd(), ".env.local"),
+      path.resolve(process.cwd(), "..", ".env.local"),
+      "d:/B/cbs/.env.local",
+      "d:/B/.env.local",
+    ]
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p)) {
+        const content = fs.readFileSync(p, "utf-8")
+        content.split("\n").forEach((line: string) => {
+          const trimmed = line.trim()
+          if (trimmed && !trimmed.startsWith("#")) {
+            const eqIdx = trimmed.indexOf("=")
+            if (eqIdx > 0) {
+              const k = trimmed.substring(0, eqIdx).trim()
+              const v = trimmed.substring(eqIdx + 1).trim()
+              if (k) {
+                process.env[k] = v
+              }
+            }
+          }
+        })
+        break
+      }
+    }
+  } catch { }
+}
 
 export function getMySqlPool(): mysql.Pool {
-  if (!pool) {
-    const host = process.env.MYSQL_HOST || "127.0.0.1"
-    const port = Number(process.env.MYSQL_PORT) || 3306
-    const user = process.env.MYSQL_USER || "root"
-    const password = process.env.MYSQL_PASSWORD || ""
-    const database = process.env.MYSQL_DATABASE || "main_dbs"
+  loadEnvFallback()
 
+  const host = process.env.MYSQL_HOST || "127.0.0.1"
+  const port = Number(process.env.MYSQL_PORT) || 3306
+  const user = process.env.MYSQL_USER || "root"
+  const password = process.env.MYSQL_PASSWORD || ""
+  const database = process.env.MYSQL_DATABASE || "main_dbs"
+  const key = `${host}:${port}:${user}:${database}:${password}`
+
+  if (!pool || currentPoolKey !== key) {
+    if (pool) {
+      try {
+        pool.end()
+      } catch { }
+    }
+    currentPoolKey = key
     pool = mysql.createPool({
       host,
       port,
@@ -443,7 +485,7 @@ export async function getClientProfileByCodes(params: {
                 }
               }
             }
-          } catch {}
+          } catch { }
 
           // Fetch line tests
           let lineTests: any = null
@@ -455,7 +497,7 @@ export async function getClientProfileByCodes(params: {
             if (lineRows && lineRows[0]) {
               lineTests = lineRows[0]
             }
-          } catch {}
+          } catch { }
 
           // Fetch retests
           let retests: any[] = []
@@ -470,7 +512,7 @@ export async function getClientProfileByCodes(params: {
               test_date: formatSqlDate(rt.test_date),
               age: rt.age ?? undefined,
             }))
-          } catch {}
+          } catch { }
 
           const dobStr = formatSqlDate(row.dob)
 
@@ -501,10 +543,10 @@ export async function getClientProfileByCodes(params: {
               row.hiv_result === 1
                 ? "អវិជ្ជមាន"
                 : row.hiv_result === 2
-                ? "វិជ្ជមាន"
-                : row.hiv_result === 3
-                ? "មិនច្បាស់លាស់"
-                : "មិនបានធ្វើ",
+                  ? "វិជ្ជមាន"
+                  : row.hiv_result === 3
+                    ? "មិនច្បាស់លាស់"
+                    : "មិនបានធ្វើ",
             refer_service_name: row.refer_service_name || "",
             refer_from_name: row.refer_from_name || "",
             occupation_name: row.occupation_name || "",
@@ -659,7 +701,7 @@ export async function getClientProfileByCodes(params: {
               [siteCode, clinicId]
             )
             statusInfo = resolvePatientStatus(statusRows?.[0])
-          } catch {}
+          } catch { }
 
           // 2. Demographics & Contact (tblaumain / tblcumain)
           let demographics: any = undefined
@@ -682,7 +724,7 @@ export async function getClientProfileByCodes(params: {
                 occupation: dm.Occupation || "",
               }
             }
-          } catch {}
+          } catch { }
 
           // 3. Regimens history (tblaart / tblcart)
           let regimens: Array<{ ART: string; DaArt: string | null }> = []
@@ -696,7 +738,7 @@ export async function getClientProfileByCodes(params: {
               ART: r.ART ? String(r.ART).trim() : "",
               DaArt: formatSqlDate(r.DaArt),
             }))
-          } catch {}
+          } catch { }
 
           // 4. Clinical Visits (tblavmain / tblcvmain)
           let visits: any[] = []
@@ -877,7 +919,7 @@ export async function getClientProfileByCodes(params: {
               [siteCode, String(clinicId)]
             )
             tests = testRows || []
-          } catch {}
+          } catch { }
 
           // 10. Allergies (tblaiallergy / tblciallergy)
           let allergies: any[] = []
@@ -893,7 +935,7 @@ export async function getClientProfileByCodes(params: {
               AllergyLabel: decodeValue("Allergy", al.Allergy),
               Da: formatSqlDate(al.Da),
             }))
-          } catch {}
+          } catch { }
 
           // 11. Prior ARV Treatment History (tblaiarvtreathis)
           let arvTreatHistory: any[] = []
@@ -911,7 +953,7 @@ export async function getClientProfileByCodes(params: {
                 Note: h.Note || "",
               }))
             }
-          } catch {}
+          } catch { }
 
           // 12. Family History for child (tblcifamily)
           let family: any[] = []
@@ -928,7 +970,7 @@ export async function getClientProfileByCodes(params: {
                 StartARV: decodeValue("StartARV", f.StartARV),
               }))
             }
-          } catch {}
+          } catch { }
 
           const mergedCodes =
             link.allCodes?.length > 0

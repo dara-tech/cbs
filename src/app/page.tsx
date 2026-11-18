@@ -5,13 +5,18 @@ import { NpdSurveillanceView } from "@/components/NpdSurveillanceView"
 import { MySqlArtVcctView } from "@/components/MySqlArtVcctView"
 
 export default function RecordsPage() {
-  const { connection } = useConnection()
+  const { connection, isDual, activeView } = useConnection()
 
-  // NPD is a DHIS2 Instance for Case Base Surveillance & Tracking
+  // Dual Connection: Toggle between NPD Surveillance & MySQL ART/VCCT
+  if (isDual) {
+    return activeView === "CLINICAL" ? <MySqlArtVcctView /> : <NpdSurveillanceView />
+  }
+
+  // Single NPD (DHIS2 Instance)
   if (connection?.kind === "DHIS2" || connection?.program === "NPD") {
     return <NpdSurveillanceView />
   }
 
-  // ART & VCCT (Shared MySQL Database view)
+  // Single ART & VCCT (Shared MySQL Database view)
   return <MySqlArtVcctView />
 }

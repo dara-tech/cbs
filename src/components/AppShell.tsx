@@ -5,9 +5,11 @@ import { AppSidebar, type NavSection } from "@/components/AppSidebar"
 import { TopNav } from "@/components/TopNav"
 import { cn } from "@/lib/utils"
 import { type DbConnection, clearActiveConnection } from "@/lib/database"
+import { LinkageHubView } from "@/components/linkage/LinkageHubView"
 
 const SECTION_TITLES: Record<NavSection, { title: string; subtitle: string }> = {
   records: { title: "Patient Records", subtitle: "Search and manage client records" },
+  linkage: { title: "ID Linkage Hub", subtitle: "National MPI Linkage, deduplication & retention tracker" },
   dashboard: { title: "Dashboard", subtitle: "Analytics and program indicators" },
 }
 
@@ -45,7 +47,7 @@ export function AppShell({ children, connection }: AppShellProps) {
 
         <main className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0")}>
           <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white dark:border-zinc-800/80 dark:bg-zinc-950">
-            {children}
+            {activeSection === "linkage" ? <LinkageHubView /> : children}
           </div>
         </main>
       </div>

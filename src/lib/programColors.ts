@@ -28,6 +28,20 @@ export const PROGRAM_COLORS = {
     iconBg: "bg-violet-100 dark:bg-violet-900/40",
     dot: "bg-violet-500",
   },
+  CBS_DUAL: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    text: "text-emerald-700 dark:text-emerald-300",
+    border: "border-emerald-200/80 dark:border-emerald-800/50",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    dot: "bg-emerald-500",
+  },
+  DUAL: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    text: "text-emerald-700 dark:text-emerald-300",
+    border: "border-emerald-200/80 dark:border-emerald-800/50",
+    iconBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    dot: "bg-emerald-500",
+  },
 } as const
 
 type ColorKey = keyof typeof PROGRAM_COLORS

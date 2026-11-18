@@ -2,6 +2,7 @@
 
 import {
   Contact2,
+  GitMerge,
   LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils"
 
 export type NavSection =
   | "records"
+  | "linkage"
   | "dashboard"
 
 interface NavItemDef {
@@ -27,6 +29,13 @@ const ALL_NAV_ITEMS: NavItemDef[] = [
     label: "Records",
     title: "Patient Records",
     Icon: Contact2,
+    group: "clinical",
+  },
+  {
+    id: "linkage",
+    label: "Linkage Hub",
+    title: "Master Patient Index (MPI) & Linkage Hub",
+    Icon: GitMerge,
     group: "clinical",
   },
   {

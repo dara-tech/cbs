@@ -6,9 +6,11 @@
 //  2. NPD: National Prevention Database — DHIS2 Instance
 //     - DHIS2 Server / API URL (e.g. https://npd.nchads.gov.kh)
 //     - DHIS2 user credentials
+//
+//  3. CBS DUAL: Connects BOTH MySQL (ART & VCCT) and DHIS2 (NPD) simultaneously.
 
-export type ConnectionKind = "MYSQL" | "DHIS2"
-export type ProgramType = "ART" | "VCCT" | "ART_VCCT" | "NPD" | string
+export type ConnectionKind = "MYSQL" | "DHIS2" | "DUAL"
+export type ProgramType = "ART" | "VCCT" | "ART_VCCT" | "NPD" | "CBS_DUAL" | string
 
 export interface DbConnection {
   id: string
@@ -18,14 +20,21 @@ export interface DbConnection {
   programs: string[]
   // DHIS2 instance specific
   serverUrl?: string
+  dhis2Username?: string
+  dhis2User?: { id: string; username: string; displayName: string }
   // MySQL specific
   host?: string
   port?: number
   dbName?: string
   username: string
+  mysqlUsername?: string
   createdAt: string
   lastConnected?: string
   color: string
+  // Dual connection active view
+  activeView?: "NPD" | "CLINICAL"
+  mysqlStatus?: "connected" | "error"
+  dhis2Status?: "connected" | "error"
 }
 
 // ─── Storage helpers ───────────────────────────────────────────────────────────
@@ -84,7 +93,7 @@ function cleanUrl(url: string) {
 export async function testDhis2Connection(
   serverUrl: string,
   username: string,
-  password: string
+  password?: string
 ): Promise<{ ok: boolean; error?: string; user?: { id: string; username: string; displayName: string } }> {
   const base = cleanUrl(serverUrl)
   if (!base) return { ok: false, error: "DHIS2 Server URL is required" }
@@ -123,13 +132,80 @@ export async function testMySqlConnection(
   if (!dbName) return { ok: false, error: "Database name is required" }
 
   try {
-    const res = await fetch("/api/mysql/records?type=vcct&pageSize=1")
+    // 1. Try dedicated MySQL connect route
+    const res = await fetch("/api/mysql/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ host, port, dbName, username, password }),
+    })
     const data = await res.json()
     if (!res.ok || !data.ok) {
       return { ok: false, error: data.error || "Failed to connect to MySQL" }
     }
     return { ok: true }
-  } catch (err: any) {
-    return { ok: false, error: err.message || "MySQL connection failed" }
+  } catch {
+    // Fallback probe
+    try {
+      const fb = await fetch("/api/mysql/records?type=vcct&pageSize=1")
+      const fbData = await fb.json()
+      if (fb.ok && fbData.ok) return { ok: true }
+      return { ok: false, error: fbData.error || "MySQL connection failed" }
+    } catch (fbErr: any) {
+      return { ok: false, error: fbErr.message || "MySQL connection failed" }
+    }
+  }
+}
+
+export interface DualTestResult {
+  ok: boolean
+  mysqlOk: boolean
+  dhis2Ok: boolean
+  mysqlError?: string
+  dhis2Error?: string
+  error?: string
+  dhis2User?: { id: string; username: string; displayName: string }
+}
+
+/** Test BOTH MySQL and DHIS2 simultaneously — both must succeed to login */
+export async function testDualConnection(params: {
+  mysql: { host: string; port: number; dbName: string; username: string; password?: string }
+  dhis2: { serverUrl: string; username: string; password?: string }
+}): Promise<DualTestResult> {
+  const [mysqlRes, dhis2Res] = await Promise.all([
+    testMySqlConnection(
+      params.mysql.host,
+      params.mysql.port,
+      params.mysql.dbName,
+      params.mysql.username,
+      params.mysql.password
+    ),
+    testDhis2Connection(
+      params.dhis2.serverUrl,
+      params.dhis2.username,
+      params.dhis2.password
+    ),
+  ])
+
+  const mysqlOk = mysqlRes.ok
+  const dhis2Ok = dhis2Res.ok
+  const bothOk = mysqlOk && dhis2Ok
+
+  let combinedError = ""
+  if (!mysqlOk && !dhis2Ok) {
+    combinedError = `បរាជ័យទាំងពីរ (Both systems failed):\n• MySQL: ${mysqlRes.error}\n• DHIS2: ${dhis2Res.error}`
+  } else if (!mysqlOk) {
+    combinedError = `MySQL បរាជ័យ (MySQL failed): ${mysqlRes.error}. Both systems are required to log in.`
+  } else if (!dhis2Ok) {
+    combinedError = `DHIS2 NPD បរាជ័យ (DHIS2 failed): ${dhis2Res.error}. Both systems are required to log in.`
+  }
+
+  return {
+    ok: bothOk,
+    mysqlOk,
+    dhis2Ok,
+    mysqlError: mysqlRes.error,
+    dhis2Error: dhis2Res.error,
+    error: combinedError || undefined,
+    dhis2User: dhis2Res.user,
   }
 }
